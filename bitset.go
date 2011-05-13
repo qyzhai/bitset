@@ -103,3 +103,85 @@ func (b *BitSet) Count() uint {
 	return 0
 }
 
+
+
+func (b *BitSet) XorBit(i uint) {
+	if i >= b.capacity {
+		panic(fmt.Sprintf("index out of range: %v", i))
+	}
+	b.set[i >> 6] ^= 1 << (i & (64 - 1))
+}
+
+func (b *BitSet) ClearAll() {
+	for i, _ := range b.set {
+		b.set[i] = 0
+	}
+}
+
+func (b *BitSet) SetAll() {
+	for i, _ := range b.set {
+		b.set[i] = ^uint64(0)
+	}
+}
+
+func (b *BitSet) XorAll() {
+	for i, _ := range b.set {
+		b.set[i] ^= ^uint64(0)
+	}
+}
+func (b *BitSet) Equ(c *BitSet) bool {
+	if c == nil {
+		return false
+	}
+	if b.capacity != c.capacity {
+		return false
+	}
+	for p, v := range b.set {
+		if c.set[p] != v {
+			return false
+		}
+	}
+	return true
+}
+
+func (b *BitSet) Clone() *BitSet {
+	c := New(b.capacity)
+	copy(c.set, b.set)
+	return c
+}
+
+func (b *BitSet) Copy(c *BitSet) (count uint) {
+	if c == nil {
+		return
+	}
+	copy(c.set, b.set)
+	count = c.capacity
+	if b.capacity < c.capacity {
+		count = b.capacity
+	}
+	return
+}
+
+func (b *BitSet) Sub(start, end uint) *BitSet {
+	if end <= start || end > b.capacity {
+		return nil
+	}
+	c := New(end - start)
+	if start&(64-1) == 0 {
+		copy(c.set, b.set[start>>6:(end+63)>>6])
+		return c
+	}
+	ipos := start & (64 - 1)
+	ifirst := start >> 6
+	icount := end - start
+	ilen := icount >> 6
+	var i uint
+	for i = 0; i < ilen; i++ {
+		v := b.set[i+ifirst] >> ipos
+		c.set[i] = v | b.set[i+ifirst+1]<<(64-ipos)
+	}
+	if icount&(64-1) != 0 {
+		c.set[i] = b.set[i+ifirst] >> ipos
+	}
+	return c
+}
